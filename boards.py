@@ -22,7 +22,7 @@ boards['test_2'] = [
 ]
 
 boards['writeup_1'] = [
-    [  0,  0,  0,  0,  0,  0,  0 ],
+    [  0,  0,  0,  0,  0,  0,  0 ], 
     [  0,  0,  0,  0,  0,  0,  0 ],
     [  0,  0,  0,  0,  0,  0,  0 ],
     [  0,  0,  0, -1,  0,  0,  0 ],
@@ -46,9 +46,17 @@ boards['tournament'] = [
     [  0, -2,  0, -2,  0,  0,  0 ]
 ]
 
-boards['your_test'] = []  # put something here!
+boards['test_combo_3'] = [
+    [  -1,  -1,  0, -1, -1 ],
+    [  -1,  -1,  0, -1, -1 ]
+]
 
-boards['your_tester'] = []  # put something here!
+boards['test_predict'] = [
+    [  0,   0,  0, -1, -1 ],  
+    [  1,   0,  0,  1,  1 ],
+    [  1,   0,  0, -1,  1 ],
+    [ -1,   0, -1,  1, -1 ] 
+]  # put something here!
 
 boards['your_testest'] = []  # put something here!
 

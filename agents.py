@@ -149,8 +149,6 @@ class MinimaxLookaheadAgent(MinimaxAgent):
         nextp = state.next_player()
         rows = state.get_rows()
         cols = state.get_cols()
-        row_score = self.get_line_score(rows, nextp)
-        col_score = self.get_line_score(cols, nextp)
 
         diags = state.get_diags()
         diags_left = diags[:len(diags)//2]
@@ -161,108 +159,160 @@ class MinimaxLookaheadAgent(MinimaxAgent):
         while i >= 0:
             rev_diags_left.append(diags_left[i])
             i -= 1
-
-        diags_left = diags_left.reverse()
-        diags_score_left = self.get_diag_score(rev_diags_left, nextp)
-        diags_score_right = self.get_diag_score(diags_right, nextp)
-
-        print(row_score)
-        print(col_score)
-
-        print(diags_score_left)
-        print(diags_score_right)
-
-        total_score = row_score + col_score + diags_score_left + diags_score_right
-
-        return total_score * nextp
-        
-    def get_line_score(self, lines, nextp):
-        line_score = 0
+        row_score = self.get_line_score(rows)
+        col_score = self.get_line_score(cols)
+        diags_score = self.get_line_score(diags)
+        if self.depth_limit == 0 and state.is_full() == False:
+            diags_score_left = 0 
+            diags_score_right = 0
+            row_score += self.get_predict_score(rows, True, False)
+            col_score += self.get_predict_score(cols, False, False)
+            diags_score_left =self.get_predict_score(rev_diags_left, False, True)
+            diags_score_right = self.get_predict_score(diags_right, False, True)
+            diags_score += diags_score_left + diags_score_right
+        total_score = row_score + col_score + diags_score  
+        return total_score
+    
+    def get_line_score(self, lines):
+        score = 0
         for i in lines:
-            try: 
-                i.index(0)
-            except:
-                continue
             p1_count = i.count(1)
             p2_count = i.count(-1)
-            zero_count = i.count(0)
             if p1_count<2 and p2_count<2:
                 continue
             else:
-                arr = i.copy()
-                for j in range(zero_count):
-                    arr_left = arr[:arr.index(0)]
-                    arr_right = arr[arr.index(0)+1:]
+                combos = []
+                combo = 0
+                j = 1
+                while j < len(i):
+                    if i[j] == i[j-1] and j == len(i)-1:
+                        combo += 2
+                        combos.append([i[j], combo])
+                        break
+                    elif i[j] == i[j-1]:
+                        combo += 1
+                    else:
+                        combo += 1
+                        combos.append([i[j-1], combo])
+                        combo = 0
+                    j += 1
+                
+                for j in combos:
+                    if j[1] >= 3:
+                        score += j[0] * (j[1] ** 2)
+        return score
                     
 
 
-            combo = 0
-            j = i.index(0)-1
-            while j >= 0:
-                if i[j] == i[j+1]:
-                    combo += 1
-                else:
-                    combo = 0
-                j -= 1
-            if combo >= 2:
-                combo += 1
-                if i.count(1) >= 2:
-                    if nextp == 1:
-                        line_score += combo ** 2
-                    else:
-                        line_score += (combo ** 2) * 0.75
-                else:
-                    if nextp == 1:
-                        line_score += (combo ** 2) * 0.75
-                    else:
-                        line_score += combo ** 2
-        return line_score
-
-    def get_diag_score(self, diags, nextp):
-        diag_score = 0
-        prev = []
-        prev_full = False
-        for i in diags:
+    def get_predict_score(self, lines, row, diag):
+        line_score = 0
+        for i in lines:                             #traverse through all the lines (either rows or columns)
+            i = list(i)
             try: 
-                i.index(0)
+                i.index(0)                          #if index of 0 cannot be found, it means the line is full and the loop will skip the current line
             except:
                 continue
-            
+            prev_full = False
+            prev_empty = False
+            try:
+                lines[lines.index(i)-1]
+            except:
+                prev_empty = True
+            if prev_empty == False:
+                prev = lines[lines.index(i)-1]
             try:
                 prev.index(0)
             except:
                 prev_full = True
-
+            skip = False
+            if i.count(0) > 1:
+                index = []
+                j = 0
+                while j < len(i):
+                    if i[j] == 0:
+                        index.append(j)
+                    j += 1
             if prev_full == False:
-                if len(prev) < i:
-                    if prev[len(prev)-1] == 0:
-                        continue
-                else:
-                    if prev[len(prev)-2] == 0:
-                        continue
+                if row == True:
+                    if i.count(0) == 1:
+                        if prev[i.index(0)] == 0:
+                            continue
+                    else:
+                        for j in index:
+                            if prev[j] == 0:
+                                skip = True
+                elif diag == True:
+                    if i.count(0) == 1:
+                        if len(prev) > len(i):
+                            if prev[i.index(0)] == 0:
+                                continue
+                        else:
+                            if prev[i.index(0)-1] == 0:
+                                continue
+                    else:
+                        if len(prev) > len(i):
+                            for j in index:
+                                if prev[j] == 0:
+                                    skip = True
+                        else:
+                            for j in index:
+                                if j != 0:
+                                    if prev[j-1] == 0:
+                                        skip = True
+                if skip == True:
+                    continue
 
-            combo = 0
-            j = i.index(0)-1
-            while j >= 0:
-                if i[j] == i[j+1]:
-                    combo += 1
-                else:
-                    combo = 0
-                j -= 1
-            if combo >= 2:
-                combo += 1
-                if i.count(1) >= 2:
-                    if nextp == 1:
-                        diag_score += combo ** 2
+            p1_count = i.count(1)
+            p2_count = i.count(-1)
+            if p1_count<2 and p2_count<2:           #if both 1 and -1 are less than 2, it means there are no combos and therefore the line is skipped
+                continue
+            else:
+                combo = 0
+                combos = []
+                split_left = i[:i.index(0)]
+                split_right = i[i.index(0)+1:]
+                split_left.reverse()
+                j = 0
+                while j < len(split_left)-1:                   
+                    if split_left[j] == -2 or split_left[j] == 0:
+                        j += 1
+                        continue
+                    if split_left[j+1] == split_left[j] and j == len(split_left)-2:
+                        combo += 1
+                        combos.append([split_left[j], combo+1])
+                    elif split_left[j-1] == split_left[j]:
+                        combo += 1
                     else:
-                        diag_score += (combo ** 2)/2
-                else:
-                    if nextp == 1:
-                        diag_score += (combo ** 2)/2
+                        combos.append([split_left[j-1], combo+1])
+                        break
+                    j += 1
+                j = 0
+                while j < len(split_right)-1:                   
+                    if split_right[j] == -2 or split_right[j] == 0:
+                        j += 1
+                        continue
+                    if split_right[j+1] == split_right[j] and j == len(split_right)-2:
+                        combo += 1
+                        combos.append([split_right[j], combo+1])
+                    elif split_right[j-1] == split_right[j]:
+                        combo += 1
                     else:
-                        diag_score += combo ** 2
-            prev = i
-        return diag_score
+                        combos.append([split_right[j-1], combo+1])
+                        break
+                    j += 1
+                if len(combos) == 1 and combos[0][1] > 1:
+                    line_score += combos[0][1] ** 2
+                elif len(combos) == 2:
+                    if(combos[0][0] == combos[1][0]):
+                        line_score += combos[0][0] * (combos[0][1] + combos[1][1]) ** 2
+                    else:
+                        if(combos[0][1] > 1):
+                            line_score += combos[0][0] * (combos[0][1] ** 2)
+                        elif(combos[1][1] > 1):
+                            line_score += combos[1][0] * (combos[1][1] ** 2)
+            
+        return line_score
+
 
 class AltMinimaxLookaheadAgent(MinimaxAgent):
     """Alternative heursitic agent used for testing."""
@@ -302,14 +352,51 @@ class MinimaxPruneAgent(MinimaxAgent):
 
         Returns: the minimax utility value of the state
         """
-        #
-        # Fill this in!
-        #
-        return 13  # Change this line!
+        if state.is_full():
+            return state.utility()
+        else:
+            util = []
+            for i in state.successors():
+                util.append(self.minimax(i[1]))
+            max = -math.inf
+            min = math.inf
+            for i in util:
+                if i > max:
+                    max = i
+                if i < min:
+                    min = i
+            if state.next_player() == 1:
+                return max
+            else:
+                return min
 
     def alphabeta(self, state,alpha, beta):
         """This is just a helper method for minimax(). Feel free to use it or not."""
-        pass
+        if state.is_full():
+            return state.utility()
+        else:
+            util = []
+            max = alpha
+            min = beta
+            for i in state.successors():
+                val = self.minimax(i, alpha, beta)
+                if state.next_player() == 1:
+                    if val > max:
+                        break
+                else:
+                    if val < min:
+                        break
+                
+                util.append(val)
+            for i in util:
+                if i > max:
+                    max = i
+                if i < min:
+                    min = i
+            if state.next_player() == 1:
+                return max
+            else:
+                return min
 
 
 def get_agent(tag):
